@@ -12,6 +12,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Find project ZIP
+        run: |
+          echo "Repository files:"
+          ls -la
+          ZIP=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: Repository root has no ZIP file."
+            exit 1
+          fi
+          echo "Using project ZIP: $ZIP"
+          echo "PROJECT_ZIP=$ZIP" >> "$GITHUB_ENV"
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -23,14 +35,14 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Install Android SDK packages
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Build debug APK
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
           mkdir source
-          unzip KodCep_AndroidStudio_Projesi.zip -d source
+          unzip "$PROJECT_ZIP" -d source
           cd source
           gradle assembleDebug
 
@@ -38,5 +50,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: KodCep-APK
-          path: source/app/build/outputs/apk/debug/app-debug.apk
+          path: source/**/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
